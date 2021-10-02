@@ -1,0 +1,59 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: url-shortener
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Timeout: 3
+
+Resources:
+  ShortenApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+
+  ShortenFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: lambda/
+      Handler: app.lambda_handler
+      Runtime: python3.9
+      Tracing: Active
+      Environment:
+        Variables:
+          LOG_LEVEL: INFO
+          POWERTOOLS_SERVICE_NAME: URL_SHORTEN_SERVICE
+          POWERTOOLS_METRICS_NAMESPACE: UrlShortener
+      Architectures:
+        - arm64
+      Events:
+        GetUrls:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            RestApiId: !Ref ShortenApi
+            Path: /urls
+            Method: get
+            # Auth:
+              # ApiKeyRequired: true
+
+  UrlTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      PrimaryKey:
+        Name: name
+        Type: String
+      TableName: urls
+
+
+
+Outputs:
+  # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
+  # Find out more about other implicit resources you can reference within SAM
+  # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
+  ShortenApi:
+    Description: "API Gateway endpoint URL for Prod stage for Shorten function"
+    Value: !Sub "https://${ShortenApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/urls"
+  UrlFunction:
+    Description: "Shorten Lambda Function ARN"
+    Value: !GetAtt ShortenFunction.Arn
