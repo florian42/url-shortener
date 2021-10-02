@@ -5,5 +5,5 @@ Resources:
       Timeout: 300
       MemorySize: 128
       Handler: app.lambda_handler
-      CodeUri: /Users/flo/source/github.com/florian42/url-shortener/lambda
+      CodeUri: /Users/flo/source/github.com/florian42/url-shortener/shorten_url_function
       Runtime: python3.9

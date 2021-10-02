@@ -1,9 +1,13 @@
 import json
+import os
+from unittest import mock
 
 import pytest
+from aws_lambda_powertools.utilities.typing import LambdaContext
+from aws_lambda_powertools.utilities.typing.lambda_client_context import LambdaClientContext
+from aws_lambda_powertools.utilities.typing.lambda_cognito_identity import LambdaCognitoIdentity
 
-from hello_world import app
-
+from shorten_url_function import app
 
 @pytest.fixture()
 def apigw_event():
@@ -33,6 +37,7 @@ def apigw_event():
                 "accountId": "",
             },
             "stage": "prod",
+            "functionName": "bla"
         },
         "queryStringParameters": {"foo": "bar"},
         "headers": {
@@ -62,9 +67,21 @@ def apigw_event():
     }
 
 
-def test_lambda_handler(apigw_event, mocker):
+class MockContext(LambdaContext):
+    def __init__(self):
+        self._function_name = "Test"
+        self._function_version = "V1"
+        self._invoked_function_arn = "arn"
+        self._memory_limit_in_mb = 1024
+        self._aws_request_id = "1234"
+        self._log_group_name = "log group"
+        self._log_stream_name = "log stream"
+        self._identity = LambdaCognitoIdentity()
+        self._client_context = LambdaClientContext()
 
-    ret = app.lambda_handler(apigw_event, "")
+def test_lambda_handler(apigw_event):
+
+    ret = app.lambda_handler(apigw_event, MockContext())
     data = json.loads(ret["body"])
 
     assert ret["statusCode"] == 200
