@@ -1,20 +1,19 @@
 import json
-import os
-from unittest import mock
+from typing import Dict, Optional
 
-import pytest
 from aws_lambda_powertools.utilities.typing import LambdaContext
 from aws_lambda_powertools.utilities.typing.lambda_client_context import LambdaClientContext
 from aws_lambda_powertools.utilities.typing.lambda_cognito_identity import LambdaCognitoIdentity
 
 from shorten_url_function import app
+from url import ShortUrl
 
-@pytest.fixture()
-def apigw_event():
+
+def build_apigw_event(path: str, body: Optional[Dict[str, any]] = None, http_method: Optional[str] = "GET"):
     """ Generates API GW Event"""
 
     return {
-        "body": '{ "test": "body"}',
+        "body": json.dumps(body),
         "resource": "/{proxy+}",
         "requestContext": {
             "resourceId": "123456",
@@ -61,9 +60,9 @@ def apigw_event():
             "Accept-Encoding": "gzip, deflate, sdch",
         },
         "pathParameters": {"proxy": "/examplepath"},
-        "httpMethod": "POST",
+        "httpMethod": http_method,
         "stageVariables": {"baz": "qux"},
-        "path": "/examplepath",
+        "path": path,
     }
 
 
@@ -79,12 +78,19 @@ class MockContext(LambdaContext):
         self._identity = LambdaCognitoIdentity()
         self._client_context = LambdaClientContext()
 
-def test_lambda_handler(apigw_event):
 
-    ret = app.lambda_handler(apigw_event, MockContext())
+def test_get_urls():
+    ret = app.lambda_handler(build_apigw_event("/urls"), MockContext())
     data = json.loads(ret["body"])
 
     assert ret["statusCode"] == 200
-    assert "message" in ret["body"]
-    assert data["message"] == "hello world"
-    # assert "location" in data.dict_keys()
+    assert data == ["https://awslabs.github.io/aws-lambda-powertools-python/latest/core/event_handler/api_gateway/"]
+
+
+def test_create_url():
+    url = ShortUrl(url="https://flo.fish", name="flo")
+    ret = app.lambda_handler(build_apigw_event("/urls", http_method="POST", body=url.dict()), MockContext())
+    data = json.loads(ret["body"])
+
+    assert ret["statusCode"] == 200
+    assert data == url

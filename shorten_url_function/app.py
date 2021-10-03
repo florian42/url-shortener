@@ -1,5 +1,8 @@
 from aws_lambda_powertools import Logger, Tracer
-from aws_lambda_powertools.event_handler.api_gateway import ApiGatewayResolver, ProxyEventType
+from aws_lambda_powertools.event_handler.api_gateway import ApiGatewayResolver
+from aws_lambda_powertools.utilities.parser import parse, ValidationError
+
+from url import ShortUrl
 
 logger = Logger()
 tracer = Tracer()
@@ -9,6 +12,19 @@ app = ApiGatewayResolver()  # by default API Gateway REST API (v1)
 @app.get("/urls")
 def get_urls():
     return ["https://awslabs.github.io/aws-lambda-powertools-python/latest/core/event_handler/api_gateway/"]
+
+
+@app.post("/urls")
+def create_short_url():
+    try:
+        parsed_payload: ShortUrl = parse(event=app.current_event.json_body, model=ShortUrl)
+        return parsed_payload.dict()
+    except ValidationError:
+        return {
+            "status_code": 400,
+            "message": "Invalid payload"
+        }
+
 
 
 @tracer.capture_lambda_handler

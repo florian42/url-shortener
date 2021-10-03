@@ -34,8 +34,14 @@ Resources:
             RestApiId: !Ref ShortenApi
             Path: /urls
             Method: get
-            # Auth:
-              # ApiKeyRequired: true
+        CreateUrl:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ShortenApi
+            Path: /urls
+            Method: post
+            Auth:
+              ApiKeyRequired: true
 
   UrlTable:
     Type: AWS::Serverless::SimpleTable
