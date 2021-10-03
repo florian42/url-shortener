@@ -8,6 +8,14 @@ Globals:
     Timeout: 3
 
 Resources:
+  UrlTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      PrimaryKey:
+        Name: name
+        Type: String
+      TableName: urls
+
   ShortenApi:
     Type: AWS::Serverless::Api
     Properties:
@@ -42,14 +50,9 @@ Resources:
             Method: post
             Auth:
               ApiKeyRequired: true
-
-  UrlTable:
-    Type: AWS::Serverless::SimpleTable
-    Properties:
-      PrimaryKey:
-        Name: name
-        Type: String
-      TableName: urls
+      Policies:
+        DynamoDBCrudPolicy:
+          TableName: !Ref UrlTable
 
 
 

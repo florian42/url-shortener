@@ -3,15 +3,25 @@ from aws_lambda_powertools.event_handler.api_gateway import ApiGatewayResolver
 from aws_lambda_powertools.utilities.parser import parse, ValidationError
 
 from url import ShortUrl
+from urls_table import UrlsTable
 
 logger = Logger()
 tracer = Tracer()
 app = ApiGatewayResolver()  # by default API Gateway REST API (v1)
 
+urls_table = UrlsTable()
+
 
 @app.get("/urls")
 def get_urls():
-    return ["https://awslabs.github.io/aws-lambda-powertools-python/latest/core/event_handler/api_gateway/"]
+    try:
+        return urls_table.scan_urls(total_segments=int(app.current_event.get_query_string_value("segments", "25")))
+    except Exception as error:
+        logger.error(error)
+        return {
+            "status_code": 500,
+            "message":str(error)
+        }
 
 
 @app.post("/urls")

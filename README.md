@@ -51,6 +51,10 @@ The first command will build the source of your application. The second command 
 
 You can find your API Gateway Endpoint URL in the output values displayed after deployment.
 
+## Example Calls
+
+- http POST https://xpsjwncjab.execute-api.eu-central-1.amazonaws.com/Prod/urls x-api-key:${API_KEY} url=https://flo.fish name=flo -v
+
 ## Use the SAM CLI to build and test locally
 
 Build your application with the `sam build --use-container` command.
