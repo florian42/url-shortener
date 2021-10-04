@@ -1,6 +1,6 @@
 import json
 import os
-from typing import Dict, Optional, Any
+from typing import Dict, Optional
 from unittest import TestCase
 
 import boto3
@@ -10,6 +10,7 @@ from aws_lambda_powertools.utilities.typing.lambda_client_context import LambdaC
 from aws_lambda_powertools.utilities.typing.lambda_cognito_identity import LambdaCognitoIdentity
 from moto import mock_dynamodb2
 from url import ShortUrl
+from urls_table import UrlsTable
 
 
 @pytest.fixture(scope='function')
@@ -144,10 +145,11 @@ class TestLambdaHandler(TestCase):
 
     def test_get_urls(self):
         from shorten_url_function import app
+        app.urls_table = UrlsTable(1)
         short_url = ShortUrl(name="mock", url="https://flo.fish")
         self.table.put_item(Item=short_url.dict())
 
-        ret = app.lambda_handler(build_apigw_event("/urls", query_string_parameters={"segments": "1"}), MockContext())
+        ret = app.lambda_handler(build_apigw_event("/urls"), MockContext())
         data = json.loads(ret["body"])
 
         assert ret["statusCode"] == 200

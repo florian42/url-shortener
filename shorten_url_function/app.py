@@ -15,12 +15,12 @@ urls_table = UrlsTable()
 @app.get("/urls")
 def get_urls():
     try:
-        return urls_table.scan_urls(total_segments=int(app.current_event.get_query_string_value("segments", "25")))
+        return urls_table.scan_urls()
     except Exception as error:
         logger.error(error)
         return {
             "status_code": 500,
-            "message":str(error)
+            "message": str(error)
         }
 
 
@@ -34,7 +34,6 @@ def create_short_url():
             "status_code": 400,
             "message": "Invalid payload"
         }
-
 
 
 @tracer.capture_lambda_handler

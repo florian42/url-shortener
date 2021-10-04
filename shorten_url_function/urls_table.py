@@ -7,14 +7,15 @@ from url import ShortUrl
 
 
 class UrlsTable:
-    def __init__(self):
+    def __init__(self, total_segments=25):
         self._table_name = "urls"
         self._dynamodb = boto3.resource('dynamodb')
         self._urls_table = self._dynamodb.Table(self._table_name)
+        self._total_segments = total_segments
 
-    def scan_urls(self, total_segments):
+    def scan_urls(self):
         return [ShortUrl(url=item['url'], name=item['name']).dict() for item in
-                parallel_scan_table(self._dynamodb.meta.client, total_segments, TableName=self._table_name)]
+                parallel_scan_table(self._dynamodb.meta.client, self._total_segments, TableName=self._table_name)]
 
 
 def parallel_scan_table(dynamo_client, total_segments, *, TableName, **kwargs):
