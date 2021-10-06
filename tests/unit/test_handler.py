@@ -22,7 +22,7 @@ def aws_credentials():
     os.environ['AWS_SESSION_TOKEN'] = 'testing'
 
 
-def build_apigw_event(path: str, body: Optional[Dict[str, any]] = None, http_method: Optional[str] = "GET",
+def build_apigw_event(path: str, body: Optional[Dict[str, any]] = None, path_params: Optional[Dict[str, any]] = None, http_method: Optional[str] = "GET",
                       query_string_parameters=None):
     """ Generates API GW Event"""
 
@@ -75,7 +75,7 @@ def build_apigw_event(path: str, body: Optional[Dict[str, any]] = None, http_met
             "CloudFront-Forwarded-Proto": "https",
             "Accept-Encoding": "gzip, deflate, sdch",
         },
-        "pathParameters": {"proxy": "/examplepath"},
+        "pathParameters": path_params,
         "httpMethod": http_method,
         "stageVariables": {"baz": "qux"},
         "path": path,
@@ -154,6 +154,19 @@ class TestLambdaHandler(TestCase):
 
         assert ret["statusCode"] == 200
         assert data == [short_url.dict()]
+
+    def test_get_url(self):
+        from shorten_url_function import app
+        app.urls_table = UrlsTable(1)
+        name = "mock"
+        short_url = ShortUrl(name=name, url="https://flo.fish")
+        self.table.put_item(Item=short_url.dict())
+
+        ret = app.lambda_handler(build_apigw_event(f"/urls/{name}", path_params={"name": name}), MockContext())
+        data = json.loads(ret["body"])
+
+        assert ret["statusCode"] == 200
+        assert data == short_url.dict()
 
 
 def test_create_url():

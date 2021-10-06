@@ -1,6 +1,9 @@
+from typing import Optional
+
 from aws_lambda_powertools import Logger, Tracer
 from aws_lambda_powertools.event_handler.api_gateway import ApiGatewayResolver
 from aws_lambda_powertools.utilities.parser import parse, ValidationError
+from botocore.exceptions import ClientError
 
 from url import ShortUrl
 from urls_table import UrlsTable
@@ -33,6 +36,22 @@ def create_short_url():
         return {
             "status_code": 400,
             "message": "Invalid payload"
+        }
+
+
+@app.get("/urls/<name>")
+def create_short_url(name: str):
+    try:
+        return urls_table.get_url(name)
+    except ValidationError:
+        return {
+            "status_code": 400,
+            "message": "Invalid payload"
+        }
+    except ClientError as error:
+        return {
+            "status_code": 500,
+            "message": error.response
         }
 
 
