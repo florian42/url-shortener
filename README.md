@@ -139,3 +139,8 @@ Next, you can use AWS Serverless Application Repository to deploy ready to use A
 ## 403 fro api-gw
 
 See: https://stackoverflow.com/a/53964593/8014273
+
+# Links
+
+- https://en.wikipedia.org/wiki/URL_redirection#Short_aliases_for_long_URLs
+- https://en.wikipedia.org/wiki/URL_shortening
