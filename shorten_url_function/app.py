@@ -1,10 +1,10 @@
-from typing import Optional
-
 from aws_lambda_powertools import Logger, Tracer
-from aws_lambda_powertools.event_handler.api_gateway import ApiGatewayResolver
+from aws_lambda_powertools.event_handler.api_gateway import ApiGatewayResolver, Response
+from aws_lambda_powertools.event_handler.exceptions import BadRequestError, InternalServerError
 from aws_lambda_powertools.utilities.parser import parse, ValidationError
 from botocore.exceptions import ClientError
 
+from redirect_html_string import get_redirect_content
 from url import ShortUrl
 from urls_table import UrlsTable
 
@@ -19,40 +19,40 @@ urls_table = UrlsTable()
 def get_urls():
     try:
         return urls_table.scan_urls()
+    except (ValidationError, ClientError) as error:
+        raise BadRequestError(str(error))
     except Exception as error:
-        logger.error(error)
-        return {
-            "status_code": 500,
-            "message": str(error)
-        }
+        raise InternalServerError(str(error))
 
 
 @app.post("/urls")
 def create_short_url():
     try:
-        parsed_payload: ShortUrl = parse(event=app.current_event.json_body, model=ShortUrl)
-        return parsed_payload.dict()
-    except ValidationError:
-        return {
-            "status_code": 400,
-            "message": "Invalid payload"
-        }
+        parsed_url: ShortUrl = parse(event=app.current_event.json_body, model=ShortUrl)
+        urls_table.put_url(parsed_url)
+        return Response(status_code=204, body=None, content_type="application/json")
+    except (ValidationError, ClientError) as error:
+        raise BadRequestError(str(error))
+    except Exception as error:
+        raise InternalServerError(str(error))
 
 
-@app.get("/urls/<name>")
-def create_short_url(name: str):
+@app.get("/url/<name>")
+def get_short_url(name: str):
     try:
-        return urls_table.get_url(name)
-    except ValidationError:
-        return {
-            "status_code": 400,
-            "message": "Invalid payload"
-        }
-    except ClientError as error:
-        return {
-            "status_code": 500,
-            "message": error.response
-        }
+        short_url = urls_table.get_url(name)
+        custom_headers = {"Location": short_url.url,
+                          "Cache-Control": "max-age=0, public, s-max-age=900, stale-if-error: 86400",
+                          "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload"}
+        return Response(status_code=301,
+                        content_type="text/html",
+                        headers=custom_headers,
+                        body=get_redirect_content(short_url.url)
+                        )
+    except (ValidationError, ClientError) as error:
+        raise BadRequestError(str(error))
+    except Exception as error:
+        raise InternalServerError(str(error))
 
 
 @tracer.capture_lambda_handler

@@ -1,5 +1,6 @@
 import concurrent.futures
 import itertools
+from typing import Dict, Any
 
 import boto3
 from boto3.dynamodb.conditions import Key
@@ -14,13 +15,18 @@ class UrlsTable:
         self._urls_table = self._dynamodb.Table(self._table_name)
         self._total_segments = total_segments
 
+    def put_url(self, url: ShortUrl):
+        self._urls_table.put_item(
+            Item=url.dict()
+        )
+
     def get_url(self, name: str) -> ShortUrl:
         response = self._urls_table.query(
             KeyConditionExpression=Key('name').eq(name)
         )
         assert len(response["Items"]) == 1
         item = response["Items"][0]
-        return ShortUrl(name=item["name"], url=item["url"]).dict()
+        return ShortUrl(name=item["name"], url=item["url"])
 
     def scan_urls(self):
         return [ShortUrl(url=item['url'], name=item['name']).dict() for item in

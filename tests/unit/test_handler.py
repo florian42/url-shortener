@@ -9,6 +9,8 @@ from aws_lambda_powertools.utilities.typing import LambdaContext
 from aws_lambda_powertools.utilities.typing.lambda_client_context import LambdaClientContext
 from aws_lambda_powertools.utilities.typing.lambda_cognito_identity import LambdaCognitoIdentity
 from moto import mock_dynamodb2
+
+from redirect_html_string import redirect_contents
 from url import ShortUrl
 from urls_table import UrlsTable
 
@@ -162,18 +164,17 @@ class TestLambdaHandler(TestCase):
         short_url = ShortUrl(name=name, url="https://flo.fish")
         self.table.put_item(Item=short_url.dict())
 
-        ret = app.lambda_handler(build_apigw_event(f"/urls/{name}", path_params={"name": name}), MockContext())
-        data = json.loads(ret["body"])
+        ret = app.lambda_handler(build_apigw_event(f"/url/{name}", path_params={"name": name}), MockContext())
+        data = ret["body"]
 
-        assert ret["statusCode"] == 200
-        assert data == short_url.dict()
+        assert ret["statusCode"] == 301
+        assert data == redirect_contents
 
+    def test_create_url(self):
+        from shorten_url_function import app
+        url = ShortUrl(url="https://flo.fish", name="flo")
+        ret = app.lambda_handler(build_apigw_event("/urls", http_method="POST", body=url.dict()), MockContext())
 
-def test_create_url():
-    from shorten_url_function import app
-    url = ShortUrl(url="https://flo.fish", name="flo")
-    ret = app.lambda_handler(build_apigw_event("/urls", http_method="POST", body=url.dict()), MockContext())
-    data = json.loads(ret["body"])
-
-    assert ret["statusCode"] == 200
-    assert data == url
+        assert ret["statusCode"] == 204
+        response = self.table.get_item(Key=url.dict())
+        assert response["Item"] == url.dict()
