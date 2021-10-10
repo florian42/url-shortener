@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "url-shortener"
+name = "urlshortener"
 version = "0.1.0"
 description = ""
 authors = ["Florian <f.aumeier@me.com>"]
@@ -27,6 +27,9 @@ flake8-bugbear = "^21.9.2"
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.isort]
+line_length = 120
 
 [tool.black]
 line-length = 120

@@ -1,12 +1,12 @@
 from aws_lambda_powertools import Logger, Tracer
 from aws_lambda_powertools.event_handler.api_gateway import ApiGatewayResolver, Response
 from aws_lambda_powertools.event_handler.exceptions import BadRequestError, InternalServerError
-from aws_lambda_powertools.utilities.parser import parse, ValidationError
+from aws_lambda_powertools.utilities.parser import ValidationError, parse
 from botocore.exceptions import ClientError
 
-from redirect_html_string import get_redirect_content
-from url import ShortUrl
-from urls_table import UrlsTable
+from .redirect_html_string import get_redirect_content
+from .url import ShortUrl
+from .urls_table import UrlsTable
 
 logger = Logger()
 tracer = Tracer()
@@ -41,14 +41,14 @@ def create_short_url():
 def get_short_url(name: str):
     try:
         short_url = urls_table.get_url(name)
-        custom_headers = {"Location": short_url.url,
-                          "Cache-Control": "max-age=0, public, s-max-age=900, stale-if-error: 86400",
-                          "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload"}
-        return Response(status_code=301,
-                        content_type="text/html",
-                        headers=custom_headers,
-                        body=get_redirect_content(short_url.url)
-                        )
+        custom_headers = {
+            "Location": short_url.url,
+            "Cache-Control": "max-age=0, public, s-max-age=900, stale-if-error: 86400",
+            "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
+        }
+        return Response(
+            status_code=301, content_type="text/html", headers=custom_headers, body=get_redirect_content(short_url.url)
+        )
     except (ValidationError, ClientError) as error:
         raise BadRequestError(str(error))
     except Exception as error:
@@ -64,8 +64,6 @@ def lambda_handler(event, context):
     ----------
     event: dict, required
         API Gateway Lambda Proxy Input Format
-
-        Event doc: https://docs.aws.amazon.com/apigateway/latest/developerguide/set-up-lambda-proxy-integrations.html#api-gateway-simple-proxy-for-lambda-input-format
 
     context: object, required
         Lambda Context runtime methods and attributes

@@ -1,4 +1,3 @@
-
 def get_redirect_content(url: str):
     return f"""<!DOCTYPE html>
 <html>

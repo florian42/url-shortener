@@ -9,24 +9,28 @@ from aws_lambda_powertools.utilities.typing import LambdaContext
 from aws_lambda_powertools.utilities.typing.lambda_client_context import LambdaClientContext
 from aws_lambda_powertools.utilities.typing.lambda_cognito_identity import LambdaCognitoIdentity
 from moto import mock_dynamodb2
-
 from redirect_html_string import redirect_contents
 from url import ShortUrl
 from urls_table import UrlsTable
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture(scope="function")
 def aws_credentials():
     """Mocked AWS Credentials for moto."""
-    os.environ['AWS_ACCESS_KEY_ID'] = 'testing'
-    os.environ['AWS_SECRET_ACCESS_KEY'] = 'testing'
-    os.environ['AWS_SECURITY_TOKEN'] = 'testing'
-    os.environ['AWS_SESSION_TOKEN'] = 'testing'
+    os.environ["AWS_ACCESS_KEY_ID"] = "testing"
+    os.environ["AWS_SECRET_ACCESS_KEY"] = "testing"
+    os.environ["AWS_SECURITY_TOKEN"] = "testing"
+    os.environ["AWS_SESSION_TOKEN"] = "testing"
 
 
-def build_apigw_event(path: str, body: Optional[Dict[str, any]] = None, path_params: Optional[Dict[str, any]] = None, http_method: Optional[str] = "GET",
-                      query_string_parameters=None):
-    """ Generates API GW Event"""
+def build_apigw_event(
+    path: str,
+    body: Optional[Dict[str, any]] = None,
+    path_params: Optional[Dict[str, any]] = None,
+    http_method: Optional[str] = "GET",
+    query_string_parameters=None,
+):
+    """Generates API GW Event"""
 
     if query_string_parameters is None:
         query_string_parameters = {}
@@ -54,7 +58,7 @@ def build_apigw_event(path: str, body: Optional[Dict[str, any]] = None, path_par
                 "accountId": "",
             },
             "stage": "prod",
-            "functionName": "bla"
+            "functionName": "bla",
         },
         "queryStringParameters": query_string_parameters,
         "headers": {
@@ -99,32 +103,20 @@ class MockContext(LambdaContext):
 
 def create_urls_table(dynamo_db):
     table = dynamo_db.create_table(
-        TableName='urls',
+        TableName="urls",
         KeySchema=[
-            {
-                'AttributeName': 'name',
-                'KeyType': 'HASH'
-            },
-            {
-                'AttributeName': 'url',
-                'KeyType': 'RANGE'  # Sort key
-            }
+            {"AttributeName": "name", "KeyType": "HASH"},
+            {"AttributeName": "url", "KeyType": "RANGE"},  # Sort key
         ],
         AttributeDefinitions=[
-            {
-                'AttributeName': 'name',
-                'AttributeType': 'S'
-            },
-            {
-                'AttributeName': 'url',
-                'AttributeType': 'S'
-            }
-        ]
+            {"AttributeName": "name", "AttributeType": "S"},
+            {"AttributeName": "url", "AttributeType": "S"},
+        ],
     )
 
     # Wait until the table exists.
-    table.meta.client.get_waiter('table_exists').wait(TableName='urls')
-    assert table.table_status == 'ACTIVE'
+    table.meta.client.get_waiter("table_exists").wait(TableName="urls")
+    assert table.table_status == "ACTIVE"
 
     return table
 
@@ -135,7 +127,7 @@ class TestLambdaHandler(TestCase):
         """
         Create database resource and mock table
         """
-        self.dynamodb = boto3.resource('dynamodb', region_name='eu-central-1')
+        self.dynamodb = boto3.resource("dynamodb", region_name="eu-central-1")
         self.table = create_urls_table(self.dynamodb)
 
     def tearDown(self):
@@ -147,6 +139,7 @@ class TestLambdaHandler(TestCase):
 
     def test_get_urls(self):
         from shorten_url_function import app
+
         app.urls_table = UrlsTable(1)
         short_url = ShortUrl(name="mock", url="https://flo.fish")
         self.table.put_item(Item=short_url.dict())
@@ -159,6 +152,7 @@ class TestLambdaHandler(TestCase):
 
     def test_get_url(self):
         from shorten_url_function import app
+
         app.urls_table = UrlsTable(1)
         name = "mock"
         short_url = ShortUrl(name=name, url="https://flo.fish")
@@ -172,6 +166,7 @@ class TestLambdaHandler(TestCase):
 
     def test_create_url(self):
         from shorten_url_function import app
+
         url = ShortUrl(url="https://flo.fish", name="flo")
         ret = app.lambda_handler(build_apigw_event("/urls", http_method="POST", body=url.dict()), MockContext())
 

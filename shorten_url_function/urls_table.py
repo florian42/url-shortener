@@ -1,36 +1,35 @@
 import concurrent.futures
 import itertools
-from typing import Dict, Any
 
 import boto3
 from boto3.dynamodb.conditions import Key
 
-from url import ShortUrl
+from .url import ShortUrl
 
 
 class UrlsTable:
     def __init__(self, total_segments=25):
         self._table_name = "urls"
-        self._dynamodb = boto3.resource('dynamodb')
+        self._dynamodb = boto3.resource("dynamodb")
         self._urls_table = self._dynamodb.Table(self._table_name)
         self._total_segments = total_segments
 
     def put_url(self, url: ShortUrl):
-        self._urls_table.put_item(
-            Item=url.dict()
-        )
+        self._urls_table.put_item(Item=url.dict())
 
     def get_url(self, name: str) -> ShortUrl:
-        response = self._urls_table.query(
-            KeyConditionExpression=Key('name').eq(name)
-        )
+        response = self._urls_table.query(KeyConditionExpression=Key("name").eq(name))
         assert len(response["Items"]) == 1
         item = response["Items"][0]
         return ShortUrl(name=item["name"], url=item["url"])
 
     def scan_urls(self):
-        return [ShortUrl(url=item['url'], name=item['name']).dict() for item in
-                parallel_scan_table(self._dynamodb.meta.client, self._total_segments, TableName=self._table_name)]
+        return [
+            ShortUrl(url=item["url"], name=item["name"]).dict()
+            for item in parallel_scan_table(
+                self._dynamodb.meta.client, self._total_segments, TableName=self._table_name
+            )
+        ]
 
 
 def parallel_scan_table(dynamo_client, total_segments, *, TableName, **kwargs):
@@ -51,7 +50,6 @@ def parallel_scan_table(dynamo_client, total_segments, *, TableName, **kwargs):
     # How many segments to divide the table into?  As long as this is >= to the
     # number of threads used by the ThreadPoolExecutor, the exact number doesn't
     # seem to matter.
-    # total_segments = 25
 
     # How many scans to run in parallel?  If you set this really high you could
     # overwhelm the table read capacity, but otherwise I don't change this much.
@@ -85,9 +83,7 @@ def parallel_scan_table(dynamo_client, total_segments, *, TableName, **kwargs):
 
         while futures:
             # Wait for the first future to complete.
-            done, _ = concurrent.futures.wait(
-                futures, return_when=concurrent.futures.FIRST_COMPLETED
-            )
+            done, _ = concurrent.futures.wait(futures, return_when=concurrent.futures.FIRST_COMPLETED)
 
             for fut in done:
                 yield from fut.result()["Items"]
