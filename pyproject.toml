@@ -1,0 +1,49 @@
+[tool.poetry]
+name = "url-shortener"
+version = "0.1.0"
+description = ""
+authors = ["Florian <f.aumeier@me.com>"]
+license = "Apache 2.0"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+
+[tool.poetry.dev-dependencies]
+pytest = "^6.2.5"
+black = "^21.9b0"
+flake8 = "^3.9.2"
+isort = "^5.9.3"
+flake8-black = "^0.2.3"
+flake8-isort = "^4.0.0"
+mypy = "^0.910"
+flake8-builtins = "^1.5.3"
+flake8-variables-names = "^0.0.4"
+flake8-functions-names = "^0.0.6"
+pytest-cov = "^3.0.0"
+coverage = "^6.0.1"
+flake8-eradicate = "^1.1.0"
+flake8-bugbear = "^21.9.2"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 120
+exclude = '''
+(
+  /(
+      \.eggs         # exclude a few common directories in the
+    | \.git          # root of the project
+    | \.hg
+    | \.mypy_cache
+    | \.tox
+    | \.venv
+    | _build
+    | buck-out
+    | build
+    | dist
+  )/
+  | example
+)
+'''
