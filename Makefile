@@ -9,9 +9,6 @@ format:
 lint: format
 	poetry run flake8 shorten_url_function/* tests/*
 
-mypy:
-	poetry run mypy --pretty shorten_url_function
-
 security-baseline:
 	poetry run bandit --baseline bandit.baseline -r aws_lambda_powertools
 

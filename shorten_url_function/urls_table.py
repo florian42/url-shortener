@@ -1,14 +1,18 @@
 import concurrent.futures
 import itertools
-from typing import Optional
+from typing import Dict, List
 
 import boto3
 from aws_lambda_powertools import Logger
+from aws_lambda_powertools.utilities.parser import BaseModel
 from boto3.dynamodb.conditions import Key
-from exceptions import UrlNotFoundError
-from url import ShortUrl
 
 logger = Logger()
+
+
+class ShortUrl(BaseModel):
+    url: str
+    url_alias: str
 
 
 class UrlsTable:
@@ -25,14 +29,14 @@ class UrlsTable:
             ExpressionAttributeValues={":url_alias": url.url_alias},
         )
 
-    def get_url(self, url_alias: str) -> Optional[ShortUrl]:
+    def get_url(self, url_alias: str) -> ShortUrl:
         response = self._urls_table.query(KeyConditionExpression=Key("url_alias").eq(url_alias))
         if len(response["Items"]) < 1:
             raise UrlNotFoundError(f"url {url_alias} hasn't been found")
         item = response["Items"][0]
         return ShortUrl(url_alias=item["url_alias"], url=item["url"])
 
-    def scan_urls(self):
+    def scan_urls(self) -> List[Dict[str, str]]:
         return [
             ShortUrl(url=item["url"], url_alias=item["url_alias"]).dict()
             for item in parallel_scan_table(
@@ -113,3 +117,7 @@ def parallel_scan_table(dynamo_client, total_segments, *, TableName, **kwargs):
             # we need to spot that and not throw.
             for scan_params in itertools.islice(scans_to_run, len(done)):
                 futures[executor.submit(dynamo_client.scan, **scan_params)] = scan_params
+
+
+class UrlNotFoundError(Exception):
+    pass

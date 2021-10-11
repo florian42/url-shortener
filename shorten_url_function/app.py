@@ -1,12 +1,14 @@
+from typing import Any, Dict, List
+
 from aws_lambda_powertools import Logger, Tracer
 from aws_lambda_powertools.event_handler.api_gateway import ApiGatewayResolver, Response
 from aws_lambda_powertools.event_handler.exceptions import BadRequestError, InternalServerError, NotFoundError
+from aws_lambda_powertools.utilities.data_classes import APIGatewayProxyEvent
 from aws_lambda_powertools.utilities.parser import ValidationError, parse
+from aws_lambda_powertools.utilities.typing import LambdaContext
 from botocore.exceptions import ClientError
-from exceptions import UrlNotFoundError
 from redirect_html_string import get_redirect_content
-from url import ShortUrl
-from urls_table import UrlsTable
+from urls_table import ShortUrl, UrlNotFoundError, UrlsTable
 
 logger = Logger()
 tracer = Tracer()
@@ -16,7 +18,7 @@ urls_table = UrlsTable()
 
 
 @app.get("/urls")
-def get_urls():
+def get_urls() -> List[Dict[str, str]]:
     try:
         return urls_table.scan_urls()
     except (ValidationError, ClientError) as error:
@@ -26,7 +28,7 @@ def get_urls():
 
 
 @app.post("/urls")
-def create_short_url():
+def create_short_url() -> Response:
     try:
         parsed_url: ShortUrl = parse(event=app.current_event.json_body, model=ShortUrl)
         urls_table.put_url(parsed_url)
@@ -41,8 +43,8 @@ def create_short_url():
         raise InternalServerError(str(error))
 
 
-@app.get("/url/<url_alias>")
-def get_short_url(url_alias: str):
+@app.get("/<url_alias>")
+def get_short_url(url_alias: str) -> Response:
     try:
         short_url = urls_table.get_url(url_alias)
         custom_headers = {
@@ -63,7 +65,7 @@ def get_short_url(url_alias: str):
 
 @tracer.capture_lambda_handler
 @logger.inject_lambda_context(log_event=True)
-def lambda_handler(event, context):
+def lambda_handler(event: APIGatewayProxyEvent, context: LambdaContext) -> Dict[str, Any]:
     """Sample pure Lambda function
 
     Parameters

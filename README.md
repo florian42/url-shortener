@@ -53,7 +53,7 @@ You can find your API Gateway Endpoint URL in the output values displayed after 
 
 ## Example Calls
 
-- http POST https://xpsjwncjab.execute-api.eu-central-1.amazonaws.com/Prod/urls x-api-key:${API_KEY} url=https://flo.fish name=flo -v
+- http POST https://{host}/urls x-api-key:${API_KEY} url=https://flo.fish name=flo -v
 
 ## Use the SAM CLI to build and test locally
 

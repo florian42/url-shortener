@@ -1,4 +1,4 @@
-def get_redirect_content(url: str):
+def get_redirect_content(url: str) -> str:
     return f"""<!DOCTYPE html>
 <html>
     <head>

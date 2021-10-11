@@ -10,8 +10,7 @@ from aws_lambda_powertools.utilities.typing.lambda_client_context import LambdaC
 from aws_lambda_powertools.utilities.typing.lambda_cognito_identity import LambdaCognitoIdentity
 from moto import mock_dynamodb2
 from redirect_html_string import get_redirect_content
-from url import ShortUrl
-from urls_table import UrlsTable
+from urls_table import ShortUrl, UrlsTable
 
 
 @pytest.fixture(scope="function")
@@ -158,7 +157,7 @@ class TestLambdaHandler(TestCase):
         short_url = ShortUrl(url_alias=url_alias, url="https://flo.fish")
         self.table.put_item(Item=short_url.dict())
 
-        ret = app.lambda_handler(build_apigw_event(f"/url/{url_alias}", path_params={"name": url_alias}), MockContext())
+        ret = app.lambda_handler(build_apigw_event(f"/{url_alias}", path_params={"name": url_alias}), MockContext())
         data = ret["body"]
 
         assert ret["statusCode"] == 301
@@ -183,3 +182,12 @@ class TestLambdaHandler(TestCase):
         assert ret["statusCode"] == 204
         response = self.table.get_item(Key=url.dict())
         assert response["Item"] == url.dict()
+
+    def test_create_url_rejects_duplicates(self):
+        from shorten_url_function import app
+
+        url = ShortUrl(url="https://flo.fish", url_alias="flo")
+        app.lambda_handler(build_apigw_event("/urls", http_method="POST", body=url.dict()), MockContext())
+        ret = app.lambda_handler(build_apigw_event("/urls", http_method="POST", body=url.dict()), MockContext())
+
+        assert ret["statusCode"] == 400
