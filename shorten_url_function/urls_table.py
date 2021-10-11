@@ -1,10 +1,14 @@
 import concurrent.futures
 import itertools
+from typing import Optional
 
 import boto3
+from aws_lambda_powertools import Logger
 from boto3.dynamodb.conditions import Key
+from exceptions import UrlNotFoundError
+from url import ShortUrl
 
-from .url import ShortUrl
+logger = Logger()
 
 
 class UrlsTable:
@@ -15,17 +19,22 @@ class UrlsTable:
         self._total_segments = total_segments
 
     def put_url(self, url: ShortUrl):
-        self._urls_table.put_item(Item=url.dict())
+        self._urls_table.put_item(
+            Item=url.dict(),
+            ConditionExpression="url_alias <> :url_alias",
+            ExpressionAttributeValues={":url_alias": url.url_alias},
+        )
 
-    def get_url(self, name: str) -> ShortUrl:
-        response = self._urls_table.query(KeyConditionExpression=Key("name").eq(name))
-        assert len(response["Items"]) == 1
+    def get_url(self, url_alias: str) -> Optional[ShortUrl]:
+        response = self._urls_table.query(KeyConditionExpression=Key("url_alias").eq(url_alias))
+        if len(response["Items"]) < 1:
+            raise UrlNotFoundError(f"url {url_alias} hasn't been found")
         item = response["Items"][0]
-        return ShortUrl(name=item["name"], url=item["url"])
+        return ShortUrl(url_alias=item["url_alias"], url=item["url"])
 
     def scan_urls(self):
         return [
-            ShortUrl(url=item["url"], name=item["name"]).dict()
+            ShortUrl(url=item["url"], url_alias=item["url_alias"]).dict()
             for item in parallel_scan_table(
                 self._dynamodb.meta.client, self._total_segments, TableName=self._table_name
             )

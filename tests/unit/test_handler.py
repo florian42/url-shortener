@@ -9,7 +9,7 @@ from aws_lambda_powertools.utilities.typing import LambdaContext
 from aws_lambda_powertools.utilities.typing.lambda_client_context import LambdaClientContext
 from aws_lambda_powertools.utilities.typing.lambda_cognito_identity import LambdaCognitoIdentity
 from moto import mock_dynamodb2
-from redirect_html_string import redirect_contents
+from redirect_html_string import get_redirect_content
 from url import ShortUrl
 from urls_table import UrlsTable
 
@@ -105,11 +105,11 @@ def create_urls_table(dynamo_db):
     table = dynamo_db.create_table(
         TableName="urls",
         KeySchema=[
-            {"AttributeName": "name", "KeyType": "HASH"},
+            {"AttributeName": "url_alias", "KeyType": "HASH"},
             {"AttributeName": "url", "KeyType": "RANGE"},  # Sort key
         ],
         AttributeDefinitions=[
-            {"AttributeName": "name", "AttributeType": "S"},
+            {"AttributeName": "url_alias", "AttributeType": "S"},
             {"AttributeName": "url", "AttributeType": "S"},
         ],
     )
@@ -141,7 +141,7 @@ class TestLambdaHandler(TestCase):
         from shorten_url_function import app
 
         app.urls_table = UrlsTable(1)
-        short_url = ShortUrl(name="mock", url="https://flo.fish")
+        short_url = ShortUrl(url_alias="mock", url="https://flo.fish")
         self.table.put_item(Item=short_url.dict())
 
         ret = app.lambda_handler(build_apigw_event("/urls"), MockContext())
@@ -154,20 +154,30 @@ class TestLambdaHandler(TestCase):
         from shorten_url_function import app
 
         app.urls_table = UrlsTable(1)
-        name = "mock"
-        short_url = ShortUrl(name=name, url="https://flo.fish")
+        url_alias = "mock"
+        short_url = ShortUrl(url_alias=url_alias, url="https://flo.fish")
         self.table.put_item(Item=short_url.dict())
 
-        ret = app.lambda_handler(build_apigw_event(f"/url/{name}", path_params={"name": name}), MockContext())
+        ret = app.lambda_handler(build_apigw_event(f"/url/{url_alias}", path_params={"name": url_alias}), MockContext())
         data = ret["body"]
 
         assert ret["statusCode"] == 301
-        assert data == redirect_contents
+        assert data == get_redirect_content(short_url.url)
+
+    def test_get_url_returns_none_when_url_not_found(self):
+        from shorten_url_function import app
+
+        app.urls_table = UrlsTable(1)
+        url_alias = "mock"
+
+        ret = app.lambda_handler(build_apigw_event(f"/url/{url_alias}", path_params={"name": url_alias}), MockContext())
+
+        assert ret["statusCode"] == 404
 
     def test_create_url(self):
         from shorten_url_function import app
 
-        url = ShortUrl(url="https://flo.fish", name="flo")
+        url = ShortUrl(url="https://flo.fish", url_alias="flo")
         ret = app.lambda_handler(build_apigw_event("/urls", http_method="POST", body=url.dict()), MockContext())
 
         assert ret["statusCode"] == 204

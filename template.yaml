@@ -12,7 +12,7 @@ Resources:
     Type: AWS::Serverless::SimpleTable
     Properties:
       PrimaryKey:
-        Name: name
+        Name: url_alias
         Type: String
       TableName: urls
 

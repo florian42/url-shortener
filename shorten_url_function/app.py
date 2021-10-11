@@ -1,12 +1,12 @@
 from aws_lambda_powertools import Logger, Tracer
 from aws_lambda_powertools.event_handler.api_gateway import ApiGatewayResolver, Response
-from aws_lambda_powertools.event_handler.exceptions import BadRequestError, InternalServerError
+from aws_lambda_powertools.event_handler.exceptions import BadRequestError, InternalServerError, NotFoundError
 from aws_lambda_powertools.utilities.parser import ValidationError, parse
 from botocore.exceptions import ClientError
-
-from .redirect_html_string import get_redirect_content
-from .url import ShortUrl
-from .urls_table import UrlsTable
+from exceptions import UrlNotFoundError
+from redirect_html_string import get_redirect_content
+from url import ShortUrl
+from urls_table import UrlsTable
 
 logger = Logger()
 tracer = Tracer()
@@ -31,16 +31,20 @@ def create_short_url():
         parsed_url: ShortUrl = parse(event=app.current_event.json_body, model=ShortUrl)
         urls_table.put_url(parsed_url)
         return Response(status_code=204, body=None, content_type="application/json")
-    except (ValidationError, ClientError) as error:
+    except ClientError as error:
+        if error.response["Error"]["Code"] == "ConditionalCheckFailedException":
+            raise BadRequestError("This short url already exists, only admins can edit.")
+        raise BadRequestError(str(error))
+    except ValidationError as error:
         raise BadRequestError(str(error))
     except Exception as error:
         raise InternalServerError(str(error))
 
 
-@app.get("/url/<name>")
-def get_short_url(name: str):
+@app.get("/url/<url_alias>")
+def get_short_url(url_alias: str):
     try:
-        short_url = urls_table.get_url(name)
+        short_url = urls_table.get_url(url_alias)
         custom_headers = {
             "Location": short_url.url,
             "Cache-Control": "max-age=0, public, s-max-age=900, stale-if-error: 86400",
@@ -49,6 +53,8 @@ def get_short_url(name: str):
         return Response(
             status_code=301, content_type="text/html", headers=custom_headers, body=get_redirect_content(short_url.url)
         )
+    except UrlNotFoundError as error:
+        raise NotFoundError(str(error))
     except (ValidationError, ClientError) as error:
         raise BadRequestError(str(error))
     except Exception as error:
