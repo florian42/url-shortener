@@ -65,6 +65,8 @@ Temporary Items
 .idea/**/gradle.xml
 .idea/**/libraries
 
+.idea
+
 # CMake
 cmake-build-debug/
 
@@ -243,3 +245,5 @@ $RECYCLE.BIN/
 
 # End of https://www.gitignore.io/api/osx,linux,python,windows,pycharm,visualstudiocode
 /dependencies/python/
+/samconfig.toml
+/.aws-sam/

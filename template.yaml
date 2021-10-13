@@ -7,6 +7,17 @@ Globals:
   Function:
     Timeout: 3
 
+Parameters:
+    DomainName:
+        Description: 'Required. Domain Name'
+        Type: 'String'
+    CertificateArn:
+        Description: 'Required. ARN of ssl certificate'
+        Type: 'String'
+    HostedZoneId:
+        Description: 'Required. Id of hosted zone'
+        Type: 'String'
+
 Resources:
   UrlTable:
     Type: AWS::Serverless::SimpleTable
@@ -20,6 +31,12 @@ Resources:
     Type: AWS::Serverless::Api
     Properties:
       StageName: Prod
+      Domain:
+        DomainName: !Ref DomainName
+        CertificateArn: !Ref CertificateArn
+        EndpointConfiguration: REGIONAL
+        Route53:
+          HostedZoneId: !Ref HostedZoneId
 
   ShortenFunctionLayer:
     Type: AWS::Serverless::LayerVersion
